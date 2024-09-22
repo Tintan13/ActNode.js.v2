@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item Lists</title>
+</head>
+<body>
+    <h1>Item List</h1>
+    <form id="itemForm">
+        <input type="text" id="itemName" placeholder="Item Name" required>
+        <button type="submit">Add Item</button>
+    </form>
+    <ul id="itemList"></ul>
+
+    <script>
+        let currentItemId = null;
+
+        document.getElementById('itemForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const itemName = document.getElementById('itemName').value;
+
+            if (currentItemId) {
+                // Update
+                const response = await fetch(`/api/items/${currentItemId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: itemName })
+                });
+
+                if (response.ok) {
+                    currentItemId = null;
+                    document.getElementById('itemName').value = '';
+                    fetchItems();
+                }
+            } else {
+                // Create
+                const response = await fetch('/api/items', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: itemName })
+                });
+
+                if (response.ok) {
+                    document.getElementById('itemName').value = '';
+                    fetchItems();
+                }
+            }
+        });
+
+        async function fetchItems() {
+            const response = await fetch('/api/items');
+            const items = await response.json();
+            const itemList = document.getElementById('itemList');
+            itemList.innerHTML = '';
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item.name;
+
+                // update btn
+                const updateButton = document.createElement('button');
+                updateButton.textContent = 'Update';
+                updateButton.onclick = () => editItem(item.id, item.name);
+                li.appendChild(updateButton);
+
+                // delete btn
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.onclick = () => deleteItem(item.id);
+                li.appendChild(deleteButton);
+
+                itemList.appendChild(li);
+            });
+        }
+
+        function editItem(id, name) {
+            currentItemId = id;
+            document.getElementById('itemName').value = name;
+        }
+
+        async function deleteItem(id) {
+            const response = await fetch(`/api/items/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                fetchItems();
+            }
+        }
+
+        fetchItems();
+    </script>
+</body>
+</html>
